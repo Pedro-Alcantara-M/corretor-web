@@ -81,11 +81,11 @@ export default {
 					5: 'hsl(var(--competencia-5))'
 				}
 			},
-            backgroundImage: {
-				'gradient-primary': 'var(--gradient-primary)',
-				'gradient-success': 'var(--gradient-success)',
-				'gradient-header': 'var(--gradient-header)',
-			},
+                backgroundImage: {
+                    'gradient-primary': 'var(--gradient-primary)',
+                    'gradient-success': 'var(--gradient-success)',
+                    'gradient-header': 'var(--gradient-header)',
+                },
 			boxShadow: {
 				'soft': 'var(--shadow-soft)',
 				'medium': 'var(--shadow-medium)',

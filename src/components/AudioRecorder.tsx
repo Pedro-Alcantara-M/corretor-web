@@ -120,7 +120,8 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
     } else {
       stopRecording();
     }
-  }, [isRecording, startRecording]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRecording]);
 
   useEffect(() => {
     return () => {

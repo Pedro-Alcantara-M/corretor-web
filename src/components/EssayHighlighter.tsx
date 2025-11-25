@@ -1,24 +1,19 @@
 import React, { useState, useRef } from 'react';
 import { Badge } from '@components/ui/Badge';
+import { type HighlightEssayText } from '@/types/essay';
 
-interface Highlight {
-  id: string;
-  startIndex: number;
-  endIndex: number;
-  competencia: number;
-  text: string;
-  comment: string;
-}
 
 interface EssayHighlighterProps {
   text: string;
-  highlights: Highlight[];
+  selectedText?: string;
+  highlights: HighlightEssayText[];
   onTextSelect: (selectedText: string, startIndex: number, endIndex: number) => void;
-  onHighlightClick: (highlight: Highlight) => void;
+  onHighlightClick: (highlight: HighlightEssayText) => void;
 }
 
 export const EssayHighlighter: React.FC<EssayHighlighterProps> = ({
   text,
+  selectedText,
   highlights,
   onTextSelect,
   onHighlightClick
@@ -105,7 +100,6 @@ export const EssayHighlighter: React.FC<EssayHighlighterProps> = ({
 
     return elements;
   };
-
   return (
     <div className="space-y-4">
       {/* Legenda das competências */}
@@ -138,8 +132,8 @@ export const EssayHighlighter: React.FC<EssayHighlighterProps> = ({
           <p className="text-sm text-primary font-medium">
             ✓ Texto selecionado (posição {selectedRange.start}-{selectedRange.end})
           </p>
-          <p className="text-xs text-primary/70 mt-1">
-            Adicione um comentário no painel lateral para marcar este trecho.
+          <p className="text-xs text-primary/70 mt-1 italic">
+            "{selectedText}"
           </p>
         </div>
       )}

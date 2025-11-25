@@ -111,14 +111,14 @@ Portanto, a solução para os problemas de mobilidade urbana no Brasil requer um
         id: '1',
         text: 'Boa contextualização do problema',
         position: { start: 0, end: 200 },
-        competencia: 'Competência 1',
+        competencia: '1',
         createdAt: '2024-01-28T14:00:00Z'
       },
       {
         id: '2',
         text: 'Desenvolva mais este argumento',
         position: { start: 500, end: 700 },
-        competencia: 'Competência 3',
+        competencia: '3',
         createdAt: '2024-01-28T14:05:00Z'
       }
     ],
@@ -199,14 +199,14 @@ Portanto, a sustentabilidade ambiental não deve ser vista como um obstáculo ao
         id: '3',
         text: 'Excelente introdução com problematização clara',
         position: { start: 0, end: 250 },
-        competencia: 'Competência 1',
+        competencia: '1',
         createdAt: '2024-01-29T16:00:00Z'
       },
       {
         id: '4',
         text: 'Boa articulação entre os argumentos',
         position: { start: 800, end: 1200 },
-        competencia: 'Competência 3',
+        competencia: '3',
         createdAt: '2024-01-29T16:05:00Z'
       }
     ]

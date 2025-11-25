@@ -34,16 +34,11 @@ import {
   Download,
 } from "lucide-react";
 import { mockEssays } from "@data/mockData";
-
-interface Comment {
-  id: string;
-  text: string;
-  startIndex: number;
-  endIndex: number;
-  competencia: number;
-  audioUrl?: string;
-  severity: "info" | "warning" | "error";
-}
+import { Comments } from "@pages/Essay/components/Comments";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useGetByIdEssay } from "@services/essay/essay.service";
+import type { EssayComments } from "@services/essay/types";
+import { ArrowLeftCircleIcon } from "lucide-react";
 
 interface CompetenciaScore {
   competencia: number;
@@ -55,22 +50,23 @@ interface CompetenciaScore {
 }
 
 interface EssayCorrectorProps {
-  className?: string;
-  initialEssay?: any;
   readOnly?: boolean;
 }
 
-export const EssayCorrector = ({
-  /* initialEssay */ readOnly = false,
-}: EssayCorrectorProps) => {
-  const initialEssay: any = mockEssays[1];
+export const EssayCorrector = ({ readOnly = false }: EssayCorrectorProps) => {
+  const initialEssay: any = mockEssays[0];
+  const navigate = useNavigate();
+  const location = useLocation();
+  const essayId = location.state.id;
+  const { data: currentEssay } = useGetByIdEssay(essayId);
   const [selectedText, setSelectedText] = useState("");
   const [selectedStartIndex, setSelectedStartIndex] = useState(0);
   const [selectedEndIndex, setSelectedEndIndex] = useState(0);
-  const [comments, setComments] = useState<Comment[]>(
-    initialEssay?.comments || []
+  const [comments, setComments] = useState<EssayComments[]>(
+    currentEssay?.comments || []
   );
   const [newComment, setNewComment] = useState("");
+  const [audioUrl, setAudioUrl] = useState("");
   const [selectedCompetencia, setSelectedCompetencia] = useState(1);
   const [isRecording, setIsRecording] = useState(false);
   const [highlights, setHighlights] = useState<any[]>([]);
@@ -122,22 +118,8 @@ export const EssayCorrector = ({
     },
   ]);
 
-  const essayText =
-    initialEssay?.content ||
-    `A importância da educação no combate às desigualdades sociais
-
-A educação sempre foi reconhecida como um pilar fundamental para o desenvolvimento de uma sociedade mais justa e igualitária. No Brasil, país marcado por profundas desigualdades sociais, o acesso à educação de qualidade representa não apenas um direito constitucional, mas também uma ferramenta essencial para a redução das disparidades econômicas e sociais que ainda persistem.
-
-Primeiramente, é importante destacar que a educação funciona como um mecanismo de mobilidade social. Através do conhecimento, indivíduos de classes menos favorecidas podem ascender socioeconomicamente, quebrando ciclos de pobreza que se perpetuam por gerações. Dados do Instituto Brasileiro de Geografia e Estatística (IBGE) demonstram que pessoas com ensino superior completo possuem renda média cinco vezes maior que aquelas com apenas o ensino fundamental.
-
-Além disso, a educação promove a formação de cidadãos mais conscientes e críticos. Quando as pessoas têm acesso a uma educação de qualidade, desenvolvem capacidades analíticas que lhes permitem compreender melhor a realidade social, política e econômica do país. Isso resulta em uma participação mais ativa na vida democrática e na busca por soluções para os problemas sociais.
-
-Entretanto, para que a educação cumpra efetivamente seu papel transformador, é necessário que o Estado implemente políticas públicas eficazes. Isso inclui não apenas a ampliação do acesso às escolas, mas também a melhoria da qualidade do ensino, a valorização dos profissionais da educação e a criação de programas de assistência estudantil que garantam a permanência dos alunos nas instituições de ensino.
-
-Portanto, investir na educação é investir no futuro do país. O governo deve, urgentemente, aumentar os recursos destinados à educação, modernizar a infraestrutura escolar e capacitar os professores. Somente assim será possível construir uma sociedade mais justa, onde as oportunidades sejam distribuídas de forma mais equitativa e onde todos tenham a chance de desenvolver seu potencial pleno.`;
-
   const competenciaIcons = {
-    1: <PenTool className="w-4 h-4 bg-black " />,
+    1: <PenTool className="w-4 h-4 bg-black" />,
     2: <BookOpen className="w-4 h-4" />,
     3: <Lightbulb className="w-4 h-4" />,
     4: <Users className="w-4 h-4" />,
@@ -156,17 +138,17 @@ Portanto, investir na educação é investir no futuro do país. O governo deve,
 
   const addComment = () => {
     if (newComment.trim() && selectedText) {
-      const comment: Comment = {
-        id: Date.now().toString(),
+      const comment: EssayComments = {
         text: newComment,
-        startIndex: selectedStartIndex,
-        endIndex: selectedEndIndex,
+        x_position: selectedStartIndex,
+        y_position: selectedEndIndex,
         competencia: selectedCompetencia,
-        severity: "info",
+        audio_url: audioUrl || undefined,
+        essay_id: essayId,
+        teacher_id: "",
       };
 
       const highlight = {
-        id: Date.now().toString(),
         startIndex: selectedStartIndex,
         endIndex: selectedEndIndex,
         competencia: selectedCompetencia,
@@ -186,7 +168,13 @@ Portanto, investir na educação é investir no futuro do país. O governo deve,
     console.log("Highlight clicked:", highlight);
   };
 
-  const onAudioReady = (audioBlob: Blob, audioUrl: string) => {
+  const onAudioReady = (_audioBlob: Blob, audioUrl: string) => {
+    setAudioUrl(audioUrl);
+
+    /*  toast({
+      title: "Áudio gravado",
+      description: "Áudio adicionado à anotação",
+    }); */
     console.log("Audio ready:", audioUrl);
   };
 
@@ -221,6 +209,9 @@ Portanto, investir na educação é investir no futuro do país. O governo deve,
         <Card className="border-0 bg-[linear-gradient(135deg,#3082ed_0%,#16a149_100%)] text-white shadow-strong">
           <CardHeader>
             <CardTitle className="flex items-center gap-3 text-2xl">
+              <Button variant="link" onClick={() => navigate(-1)}>
+                <ArrowLeftCircleIcon size={30} className="text-white text-3xl" />
+              </Button>
               <FileText className="w-8 h-8" />
               Plataforma de Correção ENEM
               <Badge
@@ -234,14 +225,10 @@ Portanto, investir na educação é investir no futuro do país. O governo deve,
         </Card>
 
         <Tabs defaultValue="corretor" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="corretor" className="flex items-center gap-2">
               <FileText className="w-4 h-4" />
               Corretor
-            </TabsTrigger>
-            <TabsTrigger value="imagem" className="flex items-center gap-2">
-              <FileText className="w-4 h-4" />
-              Imagem
             </TabsTrigger>
             <TabsTrigger value="audio" className="flex items-center gap-2">
               <Mic className="w-4 h-4" />
@@ -265,15 +252,47 @@ Portanto, investir na educação é investir no futuro do país. O governo deve,
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <EssayHighlighter
-                      text={essayText}
-                      highlights={highlights}
-                      onTextSelect={handleTextSelection}
-                      onHighlightClick={handleHighlightClick}
-                    />
+                    {currentEssay?.image_url ? (
+                      <ImageAnnotator
+                        essayId={currentEssay?._id}
+                        readOnly={readOnly}
+                        initialImage="https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=800&h=600&fit=crop"
+                        initialAnnotations={[
+                          {
+                            id: "1",
+                            x_position: 100,
+                            y_position: 150,
+                            width: 200,
+                            height: 50,
+                            text: "Boa introdução, mas pode ser mais específica",
+                            competencia: 1,
+                            createdAt: "2024-01-28T14:00:00Z",
+                          },
+                          {
+                            id: "2",
+                            x_position: 150,
+                            y_position: 300,
+                            width: 250,
+                            height: 80,
+                            text: "Desenvolva melhor este argumento com exemplos",
+                            competencia: 3,
+                            audioUrl: "audio-mock-url",
+                            createdAt: "2024-01-28T14:05:00Z",
+                          },
+                        ]}
+                      />
+                    ) : (
+                      <EssayHighlighter
+                        text={currentEssay?.content ?? ""}
+                        selectedText={selectedText}
+                        highlights={highlights}
+                        onTextSelect={handleTextSelection}
+                        onHighlightClick={handleHighlightClick}
+                      />
+                    )}
                   </CardContent>
                 </Card>
-                {/* Painel de Comentários */}
+                {/* Painel de Adicionar Comentários */}
                 <Card className="shadow-medium">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -312,6 +331,19 @@ Portanto, investir na educação é investir no futuro do país. O governo deve,
                         placeholder="Digite sua sugestão de melhoria..."
                         className="mt-1"
                         rows={3}
+                      />
+                    </div>
+
+                    <div>
+                      <Label className="flex items-center gap-2 mb-2">
+                        <Mic className="w-4 h-4" />
+                        Gravação de Áudio
+                      </Label>
+                      <AudioRecorder
+                        onAudioReady={onAudioReady}
+                        isRecording={isRecording}
+                        onToggleRecording={() => setIsRecording(!isRecording)}
+                        compact
                       />
                     </div>
                     <Button
@@ -402,79 +434,18 @@ Portanto, investir na educação é investir no futuro do país. O governo deve,
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {comments.length === 0 ? (
-                      <p className="text-center text-muted-foreground text-sm py-8">
-                        Nenhum comentário adicionado ainda.
-                        <br />
-                        Selecione um trecho da redação para começar.
-                      </p>
-                    ) : (
-                      comments.map((comment) => (
-                        <div
-                          key={comment.id}
-                          className="p-3 bg-accent/50 rounded-lg border"
-                        >
-                          <div className="flex items-center gap-2 mb-2">
-                            <Button
-                              variant={
-                                `competencia${comment.competencia}` as any
-                              }
-                              size="xs"
-                              className="w-5 h-5 p-0 rounded-full"
-                            >
-                              {comment.competencia}
-                            </Button>
-                            <span className="text-xs text-muted-foreground">
-                              Competência {comment.competencia}
-                            </span>
-                          </div>
-                          <p className="text-sm">{comment.text}</p>
-                          {comment.audioUrl && (
-                            <audio controls className="w-full mt-2 h-8">
-                              <source
-                                src={comment.audioUrl}
-                                type="audio/mpeg"
-                              />
-                            </audio>
-                          )}
-                        </div>
-                      ))
-                    )}
+                    {/* Comentários */}
+                    <Comments
+                      essayId={initialEssay?.id}
+                      readOnly={readOnly}
+                      initialImage="https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=800&h=600&fit=crop"
+                      comments={comments}
+                      setComments={setComments}
+                    />
                   </CardContent>
                 </Card>
               </div>
             </div>
-          </TabsContent>
-
-          <TabsContent value="imagem" className="mt-6">
-            <ImageAnnotator
-              essayId={initialEssay?.id}
-              readOnly={readOnly}
-              initialImage="https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=800&h=600&fit=crop"
-              initialAnnotations={[
-                {
-                  id: "1",
-                  x: 100,
-                  y: 150,
-                  width: 200,
-                  height: 50,
-                  comment: "Boa introdução, mas pode ser mais específica",
-                  competencia: 1,
-                  createdAt: "2024-01-28T14:00:00Z",
-                },
-                {
-                  id: "2",
-                  x: 150,
-                  y: 300,
-                  width: 250,
-                  height: 80,
-                  comment: "Desenvolva melhor este argumento com exemplos",
-                  competencia: 3,
-                  audioUrl: "audio-mock-url",
-                  createdAt: "2024-01-28T14:05:00Z",
-                },
-              ]}
-            />
           </TabsContent>
 
           <TabsContent value="audio" className="mt-6">

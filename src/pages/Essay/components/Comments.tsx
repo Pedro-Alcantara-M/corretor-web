@@ -1,0 +1,194 @@
+import { AudioRecorder } from "@components";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  Textarea,
+  Button,
+  Label,
+  Badge,
+  Separator,
+} from "@components/ui";
+import { MessageSquare, Mic, Trash, X } from "lucide-react";
+import { useState, type Dispatch, type FC, type SetStateAction } from "react";
+import type { EssayComments } from "@services/essay/types";
+
+interface ImageCommentProps {
+  essayId?: string;
+  readOnly?: boolean;
+  initialImage?: string;
+  comments: EssayComments[];
+  setComments: Dispatch<SetStateAction<EssayComments[]>>;
+}
+
+export const Comments: FC<ImageCommentProps> = ({
+  readOnly = false,
+  comments,
+  setComments,
+}) => {
+  /*   const [comments, setComments] =
+    useState<Comment[]>(initialComments); */
+  //const [isDrawing, setIsDrawing] = useState(false);
+  //const [currentAnnotation, setCurrentAnnotation] =
+  useState<Partial<Comment> | null>(null);
+  const [selectedComment, setSelectedComment] = useState<string | undefined>();
+  const [newComment, setNewComment] = useState("");
+  //const [selectedCompetencia, setSelectedCompetencia] = useState(1);
+  const [isRecording, setIsRecording] = useState(false);
+
+  const saveComment = () => {
+    if (!selectedComment || !newComment.trim()) return;
+
+    setComments((prev) =>
+      prev.map((comment) =>
+        comment._id === selectedComment
+          ? { ...comment, comment: newComment }
+          : comment
+      )
+    );
+    setNewComment("");
+    setSelectedComment(undefined);
+
+    /*  toast({
+      title: "Comentário adicionado",
+      description: "Comentário salvo na anotação",
+    }); */
+  };
+  const handleAudioReady = (_audioBlob: Blob, audioUrl: string) => {
+    if (!selectedComment) return;
+
+    setComments((prev) =>
+      prev.map((comment) =>
+        comment._id === selectedComment ? { ...comment, audioUrl } : comment
+      )
+    );
+
+    /*  toast({
+      title: "Áudio gravado",
+      description: "Áudio adicionado à anotação",
+    }); */
+  };
+
+  const deleteComment = (commentId: string) => {
+    setComments((prev) => prev.filter((a) => a._id !== commentId));
+    if (selectedComment === commentId) {
+      setSelectedComment(undefined);
+    }
+  };
+
+  const selectedCommentData = comments.find((a) => a._id === selectedComment);
+
+  return (
+    <div className="space-y-6">
+      {/* Painel de Anotações */}
+      {/* Formulário de Comentário */}
+      {selectedComment && (
+        <Card>
+          <CardHeader className="flex-row">
+            <CardTitle className="flex items-center gap-2 justify-between">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="w-5 h-5" />
+                Editar Anotação
+              </div>
+
+              <Button variant="outline" size="sm" onClick={() => setSelectedComment(undefined)}>
+                <X className="w-4 h-4 text-black me-auto" />
+              </Button>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Badge variant="outline">
+                Competência {selectedCommentData?.competencia}
+              </Badge>
+            </div>
+
+            <div>
+              <Label htmlFor="comment">Comentário</Label>
+              <Textarea
+                id="comment"
+                value={newComment || selectedCommentData?.text || ""}
+                onChange={(e: {
+                  target: { value: React.SetStateAction<string> };
+                }) => setNewComment(e.target.value)}
+                placeholder="Digite seu comentário sobre este trecho..."
+                rows={3}
+                disabled={readOnly}
+              />
+            </div>
+
+            {!readOnly && (
+              <>
+                <Separator />
+
+                <div>
+                  <Label className="flex items-center gap-2 mb-2">
+                    <Mic className="w-4 h-4" />
+                    Gravação de Áudio
+                  </Label>
+                  <AudioRecorder
+                    onAudioReady={handleAudioReady}
+                    isRecording={isRecording}
+                    onToggleRecording={() => setIsRecording(!isRecording)}
+                    compact
+                  />
+                </div>
+
+                <div className="flex gap-2">
+                  <Button onClick={saveComment} className="flex-1">
+                    Salvar Comentário
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => deleteComment(selectedComment)}
+                  >
+                    <Trash className="w-4 h-4 text-white" />
+                  </Button>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Lista de Anotações */}
+      {comments.length === 0 ? (
+        <p className="text-center text-muted-foreground text-sm py-4">
+          {readOnly
+            ? "Nenhuma anotação nesta imagem"
+            : "Nenhuma anotação ainda. Clique e arraste na imagem para criar uma."}
+        </p>
+      ) : (
+        comments.map((comment) => (
+          <div
+            key={comment._id}
+            className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+              selectedComment === comment._id
+                ? "border-primary bg-primary/5"
+                : "border-border hover:border-primary/50"
+            }`}
+            onClick={() => setSelectedComment(comment._id)}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <Badge variant="outline">Competência {comment.competencia}</Badge>
+              <span className="text-xs text-muted-foreground">
+                {new Date(comment?.created_at || new Date()).toLocaleString(
+                  "pt-BR"
+                )}
+              </span>
+            </div>
+            {comment.text && <p className="text-sm mb-2">{comment.text}</p>}
+
+            {comment.audio_url && comment.audio_url[0] && (
+              <audio controls className="w-full h-8">
+                <source src={comment.audio_url as string} type="audio/wav" />
+              </audio>
+            )}
+          </div>
+        ))
+      )}
+    </div>
+  );
+};

@@ -1,7 +1,7 @@
-import EssayCorrector from "@components/EssayCorrector";
+import { Dashboard } from "./Dashboard";
 
 const Home = () => {
-  return <EssayCorrector />;
+  return <Dashboard />;
 };
 
 export default Home;

@@ -1,9 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient } from "@services/queryClient";
 import { loginUser } from "@services/auth/auth.service";
-import { api } from "@services/api";
 import { useNavigate } from "react-router-dom";
 
 export default function LoginPage() {
@@ -21,9 +19,8 @@ export default function LoginPage() {
     mutationFn: loginUser,
     onSuccess: (response: {access_token: string}) => {
       localStorage.setItem("token", response.access_token);
-      api.defaults.headers.Authorization = `Bearer ${response.access_token}`;
       queryClient.invalidateQueries({ queryKey: ["token"] });
-      navitate("/"); // Redirect to home after successful login
+      navitate("/home");
     },
   });
 
@@ -31,9 +28,6 @@ export default function LoginPage() {
     e.preventDefault();
     mutate({ email, password });
   };
-  
-
-  useEffect(() => { console.log({error})}, [error])
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-100">
