@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect, type Dispatch, type SetStateAction } from "react";
 import {
   Button,
   Input,
@@ -13,6 +13,8 @@ interface ImageAnnotatorProps {
   readOnly?: boolean;
   initialImage?: string;
   initialAnnotations?: HighlightEssayImg[];
+  setSelectedCompetencia: Dispatch<SetStateAction<number>>;
+  selectedCompetencia: number;
 }
 
 export const ImageAnnotator: React.FC<ImageAnnotatorProps> = ({
@@ -20,6 +22,9 @@ export const ImageAnnotator: React.FC<ImageAnnotatorProps> = ({
   readOnly = false,
   initialImage,
   initialAnnotations = [],
+  setSelectedCompetencia,
+  selectedCompetencia = 1,
+
 }) => {
   // const { toast } = useToast();
   const [imageUrl, setImageUrl] = useState<string>(initialImage || "");
@@ -31,7 +36,6 @@ export const ImageAnnotator: React.FC<ImageAnnotatorProps> = ({
   const [selectedAnnotation, setSelectedAnnotation] = useState<string | null>(
     null
   );
-  const [selectedCompetencia, setSelectedCompetencia] = useState(1);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -190,7 +194,7 @@ export const ImageAnnotator: React.FC<ImageAnnotatorProps> = ({
     }
   }, [annotations, selectedAnnotation, currentAnnotation, isDrawing]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     drawAnnotations();
   }, [drawAnnotations]);
 
@@ -306,6 +310,8 @@ export const ImageAnnotator: React.FC<ImageAnnotatorProps> = ({
               src={imageUrl}
               alt="Redação"
               className="hidden"
+              width={694}
+              height={762}
               onLoad={handleImageLoad}
             />
             <canvas

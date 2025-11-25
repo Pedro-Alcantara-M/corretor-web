@@ -34,10 +34,10 @@ import {
   Download,
 } from "lucide-react";
 import { mockEssays } from "@data/mockData";
-import { Comments } from "@pages/Essay/components/Comments";
+import { ListComments } from "./ListComments";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useGetByIdEssay } from "@services/essay/essay.service";
-import type { EssayComments } from "@services/essay/types";
+import type { EssayComment } from "@services/essay/types";
 import { ArrowLeftCircleIcon } from "lucide-react";
 
 interface CompetenciaScore {
@@ -53,6 +53,30 @@ interface EssayCorrectorProps {
   readOnly?: boolean;
 }
 
+const mockedComments = [
+  {
+    id: "1",
+    x_position: 100,
+    y_position: 150,
+    width: 200,
+    height: 50,
+    text: "Boa introdução, mas pode ser mais específica",
+    competencia: 1,
+    createdAt: "2024-01-28T14:00:00Z",
+  },
+  {
+    id: "2",
+    x_position: 150,
+    y_position: 300,
+    width: 250,
+    height: 80,
+    text: "Desenvolva melhor este argumento com exemplos",
+    competencia: 3,
+    audioUrl: "audio-mock-url",
+    createdAt: "2024-01-28T14:05:00Z",
+  },
+];
+
 export const EssayCorrector = ({ readOnly = false }: EssayCorrectorProps) => {
   const initialEssay: any = mockEssays[0];
   const navigate = useNavigate();
@@ -62,8 +86,8 @@ export const EssayCorrector = ({ readOnly = false }: EssayCorrectorProps) => {
   const [selectedText, setSelectedText] = useState("");
   const [selectedStartIndex, setSelectedStartIndex] = useState(0);
   const [selectedEndIndex, setSelectedEndIndex] = useState(0);
-  const [comments, setComments] = useState<EssayComments[]>(
-    currentEssay?.comments || []
+  const [comments, setComments] = useState<EssayComment[]>(
+    currentEssay?.comments || mockedComments as EssayComment
   );
   const [newComment, setNewComment] = useState("");
   const [audioUrl, setAudioUrl] = useState("");
@@ -138,7 +162,7 @@ export const EssayCorrector = ({ readOnly = false }: EssayCorrectorProps) => {
 
   const addComment = () => {
     if (newComment.trim() && selectedText) {
-      const comment: EssayComments = {
+      const comment: EssayComment = {
         text: newComment,
         x_position: selectedStartIndex,
         y_position: selectedEndIndex,
@@ -178,9 +202,9 @@ export const EssayCorrector = ({ readOnly = false }: EssayCorrectorProps) => {
     console.log("Audio ready:", audioUrl);
   };
 
-  const toggleRecording = () => {
+  /*  const toggleRecording = () => {
     setIsRecording(!isRecording);
-  };
+  }; */
 
   const updateScore = (competencia: number, newScore: number) => {
     setScores(
@@ -210,7 +234,10 @@ export const EssayCorrector = ({ readOnly = false }: EssayCorrectorProps) => {
           <CardHeader>
             <CardTitle className="flex items-center gap-3 text-2xl">
               <Button variant="link" onClick={() => navigate(-1)}>
-                <ArrowLeftCircleIcon size={30} className="text-white text-3xl" />
+                <ArrowLeftCircleIcon
+                  size={30}
+                  className="text-white text-3xl"
+                />
               </Button>
               <FileText className="w-8 h-8" />
               Plataforma de Correção ENEM
@@ -230,10 +257,6 @@ export const EssayCorrector = ({ readOnly = false }: EssayCorrectorProps) => {
               <FileText className="w-4 h-4" />
               Corretor
             </TabsTrigger>
-            <TabsTrigger value="audio" className="flex items-center gap-2">
-              <Mic className="w-4 h-4" />
-              Áudio
-            </TabsTrigger>
             <TabsTrigger value="analytics" className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />
               Análise
@@ -250,36 +273,24 @@ export const EssayCorrector = ({ readOnly = false }: EssayCorrectorProps) => {
                       <FileText className="w-5 h-5" />
                       Redação do Estudante
                     </CardTitle>
+                    <div className="pt-4">
+                      <p>
+                        <strong>Nome:</strong> {currentEssay?.student.name}
+                      </p>
+                      <p>
+                        <strong>Email:</strong> {currentEssay?.student.email}
+                      </p>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     {currentEssay?.image_url ? (
                       <ImageAnnotator
+                        setSelectedCompetencia={setSelectedCompetencia}
+                        selectedCompetencia={selectedCompetencia}
                         essayId={currentEssay?._id}
                         readOnly={readOnly}
-                        initialImage="https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=800&h=600&fit=crop"
-                        initialAnnotations={[
-                          {
-                            id: "1",
-                            x_position: 100,
-                            y_position: 150,
-                            width: 200,
-                            height: 50,
-                            text: "Boa introdução, mas pode ser mais específica",
-                            competencia: 1,
-                            createdAt: "2024-01-28T14:00:00Z",
-                          },
-                          {
-                            id: "2",
-                            x_position: 150,
-                            y_position: 300,
-                            width: 250,
-                            height: 80,
-                            text: "Desenvolva melhor este argumento com exemplos",
-                            competencia: 3,
-                            audioUrl: "audio-mock-url",
-                            createdAt: "2024-01-28T14:05:00Z",
-                          },
-                        ]}
+                        initialImage={currentEssay.image_url}
+                        initialAnnotations={mockedComments}
                       />
                     ) : (
                       <EssayHighlighter
@@ -435,79 +446,14 @@ export const EssayCorrector = ({ readOnly = false }: EssayCorrectorProps) => {
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {/* Comentários */}
-                    <Comments
-                      essayId={initialEssay?.id}
+                    <ListComments
                       readOnly={readOnly}
-                      initialImage="https://images.unsplash.com/photo-1586281380349-632531db7ed4?w=800&h=600&fit=crop"
                       comments={comments}
                       setComments={setComments}
                     />
                   </CardContent>
                 </Card>
               </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="audio" className="mt-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="shadow-medium">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Mic className="w-5 h-5" />
-                    Gravação de Comentários
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <AudioRecorder
-                    onAudioReady={onAudioReady}
-                    isRecording={isRecording}
-                    onToggleRecording={toggleRecording}
-                  />
-
-                  {selectedText && (
-                    <div className="mt-4 p-4 bg-primary-light rounded-lg border border-primary/20">
-                      <p className="text-sm font-medium text-primary mb-2">
-                        Texto selecionado para comentário:
-                      </p>
-                      <p className="text-sm bg-white p-2 rounded border italic">
-                        "{selectedText}"
-                      </p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-              <Card className="shadow-medium">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5" />
-                    Instruções de Gravação
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Como usar:</h4>
-                    <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
-                      <li>Selecione um trecho da redação na aba "Corretor"</li>
-                      <li>Clique em "Gravar Áudio" para iniciar a gravação</li>
-                      <li>Fale suas sugestões de melhoria</li>
-                      <li>Clique em "Parar Gravação" para finalizar</li>
-                      <li>Ouça a gravação e faça download se necessário</li>
-                    </ol>
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Dicas para gravação:</h4>
-                    <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                      <li>Fale de forma clara e pausada</li>
-                      <li>Mencione a competência relacionada</li>
-                      <li>Seja específico nas sugestões</li>
-                      <li>Use um ambiente silencioso</li>
-                    </ul>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           </TabsContent>
 

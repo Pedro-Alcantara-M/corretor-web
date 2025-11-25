@@ -17,8 +17,7 @@ export default function LoginPage() {
   } = useMutation({
     mutationKey: ["token"],
     mutationFn: loginUser,
-    onSuccess: (response: {access_token: string}) => {
-      localStorage.setItem("token", response.access_token);
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["token"] });
       navitate("/home");
     },

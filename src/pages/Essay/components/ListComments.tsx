@@ -12,29 +12,22 @@ import {
 } from "@components/ui";
 import { MessageSquare, Mic, Trash, X } from "lucide-react";
 import { useState, type Dispatch, type FC, type SetStateAction } from "react";
-import type { EssayComments } from "@services/essay/types";
+import type { EssayComment } from "@services/essay/types";
 
-interface ImageCommentProps {
-  essayId?: string;
+interface ListCommentProps {
   readOnly?: boolean;
-  initialImage?: string;
-  comments: EssayComments[];
-  setComments: Dispatch<SetStateAction<EssayComments[]>>;
+  comments: EssayComment[];
+  setComments: Dispatch<SetStateAction<EssayComment[]>>;
 }
 
-export const Comments: FC<ImageCommentProps> = ({
+export const ListComments: FC<ListCommentProps> = ({
   readOnly = false,
   comments,
   setComments,
 }) => {
-  /*   const [comments, setComments] =
-    useState<Comment[]>(initialComments); */
-  //const [isDrawing, setIsDrawing] = useState(false);
-  //const [currentAnnotation, setCurrentAnnotation] =
   useState<Partial<Comment> | null>(null);
   const [selectedComment, setSelectedComment] = useState<string | undefined>();
   const [newComment, setNewComment] = useState("");
-  //const [selectedCompetencia, setSelectedCompetencia] = useState(1);
   const [isRecording, setIsRecording] = useState(false);
 
   const saveComment = () => {

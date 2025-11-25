@@ -1,4 +1,4 @@
-export interface  EssayComments {
+export interface  EssayComment {
   _id?: string;
   essay_id: string;
   teacher_id: string;
@@ -20,7 +20,7 @@ export interface Student {
 export interface Essay {
    _id: string;
   student: Student;
-  comments: EssayComments[];
+  comments: EssayComment[];
   title: string;
   content?: string;
   image_url?: string;
