@@ -1,7 +1,7 @@
 export interface  EssayComment {
   _id?: string;
   essay_id: string;
-  teacher_id: string;
+  teacher_id?: string;
   x_position?: number;
   y_position?: number;
   width?: number;
@@ -28,6 +28,11 @@ export interface Essay {
   submitted_at?: string;
   corrected_at?: string;
   corrected_by?: string;
+  score1?: number;
+  score2?: number;
+  score3?: number;
+  score4?: number;
+  score5?: number;
 }
 
 export type EssaysResponse = Essay[] | [];

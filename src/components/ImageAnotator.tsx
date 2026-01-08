@@ -1,42 +1,49 @@
-import React, { useState, useRef, useCallback, useEffect, type Dispatch, type SetStateAction } from "react";
-import {
-  Button,
-  Input,
-  Label,
-} from "@/components/ui";
+import React, {
+  useState,
+  useRef,
+  useCallback,
+  useEffect,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
+import { Button, Input, Label } from "@/components/ui";
 import { Upload, Download } from "lucide-react";
 import { type HighlightEssayImg } from "@/types/essay";
+import { type EssayComment } from "@services/essay/types";
 //import { useToast } from '@/hooks/use-toast';
 
 interface ImageAnnotatorProps {
   essayId?: string;
   readOnly?: boolean;
   initialImage?: string;
-  initialAnnotations?: HighlightEssayImg[];
   setSelectedCompetencia: Dispatch<SetStateAction<number>>;
   selectedCompetencia: number;
+  setCurrentAnnotation: Dispatch<
+    SetStateAction<Partial<HighlightEssayImg> | null>
+  >;
+  currentAnnotation: Partial<HighlightEssayImg> | null;
+  setAnnotations: Dispatch<SetStateAction<EssayComment[]>>;
+  annotations: EssayComment[];
+  setSelectedCommentId: Dispatch<SetStateAction<string | undefined>>;
+  selectedCommentId?: string;
 }
 
 export const ImageAnnotator: React.FC<ImageAnnotatorProps> = ({
   essayId,
   readOnly = false,
   initialImage,
-  initialAnnotations = [],
   setSelectedCompetencia,
   selectedCompetencia = 1,
-
+  setCurrentAnnotation,
+  currentAnnotation,
+  annotations = [],
+  setAnnotations,
+  setSelectedCommentId,
+  selectedCommentId
 }) => {
   // const { toast } = useToast();
   const [imageUrl, setImageUrl] = useState<string>(initialImage || "");
-  const [annotations, setAnnotations] =
-    useState<HighlightEssayImg[]>(initialAnnotations);
   const [isDrawing, setIsDrawing] = useState(false);
-  const [currentAnnotation, setCurrentAnnotation] =
-    useState<Partial<HighlightEssayImg> | null>(null);
-  const [selectedAnnotation, setSelectedAnnotation] = useState<string | null>(
-    null
-  );
-
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -126,18 +133,18 @@ export const ImageAnnotator: React.FC<ImageAnnotatorProps> = ({
       Math.abs(currentAnnotation.width!) > 10 &&
       Math.abs(currentAnnotation.height!) > 10
     ) {
-      const annotation: HighlightEssayImg = {
-        id: Date.now().toString(),
+      const annotation: EssayComment = {
+        _id: Date.now().toString(),
         x_position: currentAnnotation.x_position!,
         y_position: currentAnnotation.y_position!,
         width: currentAnnotation.width!,
         height: currentAnnotation.height!,
         text: "",
         competencia: currentAnnotation.competencia!,
-        createdAt: new Date().toISOString(),
+        essay_id: essayId || "",
       };
       setAnnotations((prev) => [...prev, annotation]);
-      setSelectedAnnotation(annotation.id);
+      setSelectedCommentId(annotation._id);
     }
     setCurrentAnnotation(null);
   };
@@ -156,27 +163,32 @@ export const ImageAnnotator: React.FC<ImageAnnotatorProps> = ({
     // Draw annotations
     annotations.forEach((annotation) => {
       ctx.strokeStyle =
-        annotation.id === selectedAnnotation ? "#ef4444" : "#3b82f6";
+        annotation._id === selectedCommentId ? "#ef4444" : "#3b82f6";
       ctx.lineWidth = 2;
       ctx.setLineDash([]);
       ctx.strokeRect(
-        annotation.x_position,
-        annotation.y_position,
-        annotation.width,
-        annotation.height
+        annotation.x_position || 0,
+        annotation.y_position || 0,
+        annotation.width || 0,
+        annotation.height || 0
       );
 
       // Draw competencia badge
       ctx.fillStyle =
-        annotation.id === selectedAnnotation ? "#ef4444" : "#3b82f6";
-      ctx.fillRect(annotation.x_position, annotation.y_position - 20, 20, 20);
+        annotation._id === selectedCommentId ? "#ef4444" : "#3b82f6";
+      ctx.fillRect(
+        annotation.x_position ?? 0,
+        (annotation.y_position ?? 0) - 20,
+        20,
+        20
+      );
       ctx.fillStyle = "white";
       ctx.font = "12px Arial";
       ctx.textAlign = "center";
       ctx.fillText(
         annotation.competencia.toString(),
-        annotation.x_position + 10,
-        annotation.y_position - 8
+        (annotation.x_position ?? 0) + 10,
+        (annotation.y_position ?? 0) - 8
       );
     });
 
@@ -192,11 +204,7 @@ export const ImageAnnotator: React.FC<ImageAnnotatorProps> = ({
         currentAnnotation.height!
       );
     }
-  }, [annotations, selectedAnnotation, currentAnnotation, isDrawing]);
-
-  useEffect(() => {
-    drawAnnotations();
-  }, [drawAnnotations]);
+  }, [annotations, currentAnnotation, isDrawing, selectedCommentId]);
 
   const handleImageLoad = () => {
     const canvas = canvasRef.current;
@@ -233,6 +241,16 @@ export const ImageAnnotator: React.FC<ImageAnnotatorProps> = ({
     URL.revokeObjectURL(url);
   };
 
+  useEffect(() => {
+    drawAnnotations();
+  }, [drawAnnotations]);
+
+  useEffect(() => {
+    if (currentAnnotation) {
+      setSelectedCommentId(currentAnnotation.id);
+    }
+  }, [currentAnnotation, setSelectedCommentId]);
+
   return (
     <div className="space-y-6">
       {/* Upload de Imagem */}
@@ -267,7 +285,7 @@ export const ImageAnnotator: React.FC<ImageAnnotatorProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
           <div className="lg:col-span-1">
             <div className="flex items-center gap-2">
-            <h5>Imagem da Redação</h5>
+              <h5>Imagem da Redação</h5>
 
               {!readOnly && (
                 <>

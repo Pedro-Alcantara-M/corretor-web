@@ -13,35 +13,50 @@ import {
 import { MessageSquare, Mic, Trash, X } from "lucide-react";
 import { useState, type Dispatch, type FC, type SetStateAction } from "react";
 import type { EssayComment } from "@services/essay/types";
+import { useAddCommentToEssay } from "@services/essay/essay.service";
 
 interface ListCommentProps {
   readOnly?: boolean;
   comments: EssayComment[];
   setComments: Dispatch<SetStateAction<EssayComment[]>>;
+  setSelectedCommentId: Dispatch<SetStateAction<string | undefined>>;
+  selectedCommentId?: string;
 }
 
 export const ListComments: FC<ListCommentProps> = ({
   readOnly = false,
   comments,
   setComments,
+  setSelectedCommentId,
+  selectedCommentId
 }) => {
   useState<Partial<Comment> | null>(null);
-  const [selectedComment, setSelectedComment] = useState<string | undefined>();
+  const { mutate: addCommentToEssay, isPending: isLoading } = useAddCommentToEssay();
+
   const [newComment, setNewComment] = useState("");
   const [isRecording, setIsRecording] = useState(false);
 
-  const saveComment = () => {
-    if (!selectedComment || !newComment.trim()) return;
+  const saveComment = async () => {
+    if (!selectedCommentId || !newComment.trim()) return;
+    const currentComment = comments.find(
+      (comment) => comment._id === selectedCommentId
+    );
 
+    const sendBody = {
+      ...currentComment, text: newComment, _id: undefined
+    }
+
+    const response = await addCommentToEssay(sendBody);
+    console.log("save comment response", response)
     setComments((prev) =>
       prev.map((comment) =>
-        comment._id === selectedComment
-          ? { ...comment, comment: newComment }
+        comment._id === selectedCommentId
+          ? { ...comment, text: newComment }
           : comment
       )
     );
     setNewComment("");
-    setSelectedComment(undefined);
+    setSelectedCommentId(undefined);
 
     /*  toast({
       title: "Comentário adicionado",
@@ -49,11 +64,11 @@ export const ListComments: FC<ListCommentProps> = ({
     }); */
   };
   const handleAudioReady = (_audioBlob: Blob, audioUrl: string) => {
-    if (!selectedComment) return;
+    if (!selectedCommentId) return;
 
     setComments((prev) =>
       prev.map((comment) =>
-        comment._id === selectedComment ? { ...comment, audioUrl } : comment
+        comment._id === selectedCommentId ? { ...comment, audioUrl } : comment
       )
     );
 
@@ -65,18 +80,18 @@ export const ListComments: FC<ListCommentProps> = ({
 
   const deleteComment = (commentId: string) => {
     setComments((prev) => prev.filter((a) => a._id !== commentId));
-    if (selectedComment === commentId) {
-      setSelectedComment(undefined);
+    if (selectedCommentId === commentId) {
+      setSelectedCommentId(undefined);
     }
   };
 
-  const selectedCommentData = comments.find((a) => a._id === selectedComment);
+  const selectedCommentData = comments.find((a) => a._id === selectedCommentId);
 
   return (
     <div className="space-y-6">
       {/* Painel de Anotações */}
       {/* Formulário de Comentário */}
-      {selectedComment && (
+      {selectedCommentId && (
         <Card>
           <CardHeader className="flex-row">
             <CardTitle className="flex items-center gap-2 justify-between">
@@ -85,7 +100,11 @@ export const ListComments: FC<ListCommentProps> = ({
                 Editar Anotação
               </div>
 
-              <Button variant="outline" size="sm" onClick={() => setSelectedComment(undefined)}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedCommentId(undefined)}
+              >
                 <X className="w-4 h-4 text-black me-auto" />
               </Button>
             </CardTitle>
@@ -129,13 +148,13 @@ export const ListComments: FC<ListCommentProps> = ({
                 </div>
 
                 <div className="flex gap-2">
-                  <Button onClick={saveComment} className="flex-1">
+                  <Button loading={isLoading} onClick={saveComment} className="flex-1">
                     Salvar Comentário
                   </Button>
                   <Button
                     variant="destructive"
                     size="sm"
-                    onClick={() => deleteComment(selectedComment)}
+                    onClick={() => deleteComment(selectedCommentId)}
                   >
                     <Trash className="w-4 h-4 text-white" />
                   </Button>
@@ -158,11 +177,13 @@ export const ListComments: FC<ListCommentProps> = ({
           <div
             key={comment._id}
             className={`p-3 border rounded-lg cursor-pointer transition-colors ${
-              selectedComment === comment._id
+              selectedCommentId === comment._id
                 ? "border-primary bg-primary/5"
                 : "border-border hover:border-primary/50"
             }`}
-            onClick={() => setSelectedComment(comment._id)}
+            onClick={() => {
+              setSelectedCommentId(comment._id)
+            }}
           >
             <div className="flex items-center gap-2 mb-2">
               <Badge variant="outline">Competência {comment.competencia}</Badge>

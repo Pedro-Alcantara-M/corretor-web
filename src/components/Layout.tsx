@@ -1,6 +1,7 @@
 import { Outlet } from "react-router-dom";
 import { Button } from "./ui";
 import { LogOut } from "lucide-react";
+import { logout } from "@services/auth/auth.service";
 
 export const Layout = () => {
   return (
@@ -13,7 +14,7 @@ export const Layout = () => {
           </p>
         </div>
 
-        <Button variant="outline"><LogOut /> Sair</Button>
+        <Button onClick={logout} variant="outline"><LogOut /> Sair</Button>
       </header>
       <main className="flex-grow p-4">
         <Outlet />

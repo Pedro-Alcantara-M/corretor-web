@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Button, Card, CardContent } from "@/components/ui";
-import { Mic, MicOff, Play, Pause, Download, Trash2 } from "lucide-react";
+import { Mic, MicOff, Play, Pause, Trash2 } from "lucide-react";
 
 interface AudioRecorderProps {
   onAudioReady?: (audioBlob: Blob, audioUrl: string) => void;
@@ -95,17 +95,6 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
     }
   };
 
-  const downloadAudio = () => {
-    if (!audioUrl) return;
-
-    const a = document.createElement("a");
-    a.href = audioUrl;
-    a.download = `comentario-audio-${Date.now()}.wav`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  };
-
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -173,14 +162,6 @@ export const AudioRecorder: React.FC<AudioRecorderProps> = ({
                 ) : (
                   <Play className="w-4 h-4" />
                 )}
-              </Button>
-
-              <Button
-                variant="outline"
-                size={compact ? "xs" : "sm"}
-                onClick={downloadAudio}
-              >
-                <Download className="w-4 h-4" />
               </Button>
 
               <Button

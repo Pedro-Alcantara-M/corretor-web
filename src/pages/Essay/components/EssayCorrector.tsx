@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -13,8 +13,6 @@ import {
   Separator,
   Tabs,
   TabsContent,
-  TabsList,
-  TabsTrigger,
 } from "@/components/ui";
 import { EssayHighlighter, AudioRecorder, ImageAnnotator } from "@components";
 //import PerformanceCharts from './PerformanceCharts';
@@ -29,16 +27,19 @@ import {
   Users,
   Lightbulb,
   Target,
-  BarChart3,
   Save,
   Download,
 } from "lucide-react";
-import { mockEssays } from "@data/mockData";
 import { ListComments } from "./ListComments";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useGetByIdEssay } from "@services/essay/essay.service";
+import {
+  useAddCommentToEssay,
+  useGetByIdEssay,
+  useUpdateEssay,
+} from "@services/essay/essay.service";
 import type { EssayComment } from "@services/essay/types";
 import { ArrowLeftCircleIcon } from "lucide-react";
+import { type HighlightEssayImg } from "@/types/essay";
 
 interface CompetenciaScore {
   competencia: number;
@@ -53,32 +54,19 @@ interface EssayCorrectorProps {
   readOnly?: boolean;
 }
 
-const mockedComments = [
-  {
-    id: "1",
-    x_position: 100,
-    y_position: 150,
-    width: 200,
-    height: 50,
-    text: "Boa introdução, mas pode ser mais específica",
-    competencia: 1,
-    createdAt: "2024-01-28T14:00:00Z",
-  },
-  {
-    id: "2",
-    x_position: 150,
-    y_position: 300,
-    width: 250,
-    height: 80,
-    text: "Desenvolva melhor este argumento com exemplos",
-    competencia: 3,
-    audioUrl: "audio-mock-url",
-    createdAt: "2024-01-28T14:05:00Z",
-  },
-];
+const competenciaIcons = {
+  1: <PenTool className="w-4 h-4 bg-black" />,
+  2: <BookOpen className="w-4 h-4" />,
+  3: <Lightbulb className="w-4 h-4" />,
+  4: <Users className="w-4 h-4" />,
+  5: <Target className="w-4 h-4" />,
+};
 
 export const EssayCorrector = ({ readOnly = false }: EssayCorrectorProps) => {
-  const initialEssay: any = mockEssays[0];
+  const { mutate: addCommentToEssay, isPending: isAddingComment } =
+    useAddCommentToEssay();
+
+  const { mutate: updateEssay, isPending: isUpdatingEssay } = useUpdateEssay();
   const navigate = useNavigate();
   const location = useLocation();
   const essayId = location.state.id;
@@ -87,18 +75,24 @@ export const EssayCorrector = ({ readOnly = false }: EssayCorrectorProps) => {
   const [selectedStartIndex, setSelectedStartIndex] = useState(0);
   const [selectedEndIndex, setSelectedEndIndex] = useState(0);
   const [comments, setComments] = useState<EssayComment[]>(
-    currentEssay?.comments || mockedComments as EssayComment
+    currentEssay?.comments || []
   );
   const [newComment, setNewComment] = useState("");
+  const [currentAnnotation, setCurrentAnnotation] =
+    useState<Partial<HighlightEssayImg> | null>(null);
   const [audioUrl, setAudioUrl] = useState("");
   const [selectedCompetencia, setSelectedCompetencia] = useState(1);
+  const [selectedCommentId, setSelectedCommentId] = useState<
+    string | undefined
+  >();
   const [isRecording, setIsRecording] = useState(false);
   const [highlights, setHighlights] = useState<any[]>([]);
+
   const [scores, setScores] = useState<CompetenciaScore[]>([
     {
       competencia: 1,
       title: "Domínio da modalidade escrita formal",
-      score: initialEssay?.scores?.competencia1 || 0,
+      score: currentEssay?.score1 || 0,
       maxScore: 200,
       description:
         "Demonstrar domínio da modalidade escrita formal da língua portuguesa",
@@ -107,7 +101,7 @@ export const EssayCorrector = ({ readOnly = false }: EssayCorrectorProps) => {
     {
       competencia: 2,
       title: "Compreensão da proposta e aplicação de conceitos",
-      score: initialEssay?.scores?.competencia2 || 0,
+      score: currentEssay?.score2 || 0,
       maxScore: 200,
       description:
         "Compreender a proposta de redação e aplicar conceitos das várias áreas de conhecimento",
@@ -116,7 +110,7 @@ export const EssayCorrector = ({ readOnly = false }: EssayCorrectorProps) => {
     {
       competencia: 3,
       title: "Informações, fatos e opiniões",
-      score: initialEssay?.scores?.competencia3 || 0,
+      score: currentEssay?.score3 || 0,
       maxScore: 200,
       description:
         "Selecionar, relacionar, organizar e interpretar informações, fatos, opiniões e argumentos",
@@ -125,7 +119,7 @@ export const EssayCorrector = ({ readOnly = false }: EssayCorrectorProps) => {
     {
       competencia: 4,
       title: "Mecanismos linguísticos",
-      score: initialEssay?.scores?.competencia4 || 0,
+      score: currentEssay?.score4 || 0,
       maxScore: 200,
       description:
         "Demonstrar conhecimento dos mecanismos linguísticos necessários para a construção da argumentação",
@@ -134,21 +128,13 @@ export const EssayCorrector = ({ readOnly = false }: EssayCorrectorProps) => {
     {
       competencia: 5,
       title: "Proposta de intervenção",
-      score: initialEssay?.scores?.competencia5 || 0,
+      score: currentEssay?.score5 || 0,
       maxScore: 200,
       description:
         "Elaborar proposta de intervenção para o problema abordado, respeitando os direitos humanos",
       color: "competencia5",
     },
   ]);
-
-  const competenciaIcons = {
-    1: <PenTool className="w-4 h-4 bg-black" />,
-    2: <BookOpen className="w-4 h-4" />,
-    3: <Lightbulb className="w-4 h-4" />,
-    4: <Users className="w-4 h-4" />,
-    5: <Target className="w-4 h-4" />,
-  };
 
   const handleTextSelection = (
     selectedText: string,
@@ -160,7 +146,19 @@ export const EssayCorrector = ({ readOnly = false }: EssayCorrectorProps) => {
     setSelectedEndIndex(endIndex);
   };
 
-  const addComment = () => {
+  const finisshEssayAnotation = async () => {
+    const updatedScores: any = {};
+
+    scores.forEach((score, index) => {
+      updatedScores[`score${index + 1}`] = score.score;
+    });
+
+    console.log("updatedScores", updatedScores, essayId);
+
+    await updateEssay({ essayId, data: updatedScores });
+  };
+
+  const addComment = async () => {
     if (newComment.trim() && selectedText) {
       const comment: EssayComment = {
         text: newComment,
@@ -169,7 +167,6 @@ export const EssayCorrector = ({ readOnly = false }: EssayCorrectorProps) => {
         competencia: selectedCompetencia,
         audio_url: audioUrl || undefined,
         essay_id: essayId,
-        teacher_id: "",
       };
 
       const highlight = {
@@ -180,6 +177,8 @@ export const EssayCorrector = ({ readOnly = false }: EssayCorrectorProps) => {
         comment: newComment,
       };
 
+      const response = await addCommentToEssay(comment);
+      console.log("Add comment response:", response);
       setComments([...comments, comment]);
       setHighlights([...highlights, highlight]);
       setNewComment("");
@@ -226,6 +225,62 @@ export const EssayCorrector = ({ readOnly = false }: EssayCorrectorProps) => {
     fullMark: score.maxScore
   })); */
 
+  useEffect(() => {
+    setComments(currentEssay?.comments || []);
+  }, [currentEssay?.comments]);
+
+  useEffect(() => {
+    if (!currentEssay) return;
+
+    setScores([
+      {
+        competencia: 1,
+        title: "Domínio da modalidade escrita formal",
+        score: currentEssay.score1 ?? 0,
+        maxScore: 200,
+        description:
+          "Demonstrar domínio da modalidade escrita formal da língua portuguesa",
+        color: "competencia1",
+      },
+      {
+        competencia: 2,
+        title: "Compreensão da proposta e aplicação de conceitos",
+        score: currentEssay.score2 ?? 0,
+        maxScore: 200,
+        description:
+          "Compreender a proposta de redação e aplicar conceitos das várias áreas de conhecimento",
+        color: "competencia2",
+      },
+      {
+        competencia: 3,
+        title: "Informações, fatos e opiniões",
+        score: currentEssay.score3 ?? 0,
+        maxScore: 200,
+        description:
+          "Selecionar, relacionar, organizar e interpretar informações, fatos, opiniões e argumentos",
+        color: "competencia3",
+      },
+      {
+        competencia: 4,
+        title: "Mecanismos linguísticos",
+        score: currentEssay.score4 ?? 0,
+        maxScore: 200,
+        description:
+          "Demonstrar conhecimento dos mecanismos linguísticos necessários para a construção da argumentação",
+        color: "competencia4",
+      },
+      {
+        competencia: 5,
+        title: "Proposta de intervenção",
+        score: currentEssay.score5 ?? 0,
+        maxScore: 200,
+        description:
+          "Elaborar proposta de intervenção para o problema abordado, respeitando os direitos humanos",
+        color: "competencia5",
+      },
+    ]);
+  }, [currentEssay]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-accent/30 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
@@ -233,26 +288,20 @@ export const EssayCorrector = ({ readOnly = false }: EssayCorrectorProps) => {
         <Card className="border-0 bg-[linear-gradient(135deg,#3082ed_0%,#16a149_100%)] text-white shadow-strong">
           <CardHeader>
             <CardTitle className="flex items-center gap-3 text-2xl">
-              <Button variant="link" onClick={() => navigate(-1)}>
-                <ArrowLeftCircleIcon
-                  size={30}
-                  className="text-white text-3xl"
-                />
-              </Button>
+              <ArrowLeftCircleIcon
+                onClick={() => navigate(-1)}
+                size={30}
+                className="w-6 h-6 cursor-pointer mr-4"
+              />
               <FileText className="w-8 h-8" />
               Plataforma de Correção ENEM
-              <Badge
-                variant="secondary"
-                className="ml-auto bg-white/20 text-white border-white/30"
-              >
-                Redação #001
-              </Badge>
             </CardTitle>
           </CardHeader>
         </Card>
 
         <Tabs defaultValue="corretor" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          {/*TODO TABS*/}
+          {/*    <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="corretor" className="flex items-center gap-2">
               <FileText className="w-4 h-4" />
               Corretor
@@ -261,7 +310,7 @@ export const EssayCorrector = ({ readOnly = false }: EssayCorrectorProps) => {
               <BarChart3 className="w-4 h-4" />
               Análise
             </TabsTrigger>
-          </TabsList>
+          </TabsList> */}
 
           <TabsContent value="corretor" className="mt-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -290,7 +339,12 @@ export const EssayCorrector = ({ readOnly = false }: EssayCorrectorProps) => {
                         essayId={currentEssay?._id}
                         readOnly={readOnly}
                         initialImage={currentEssay.image_url}
-                        initialAnnotations={mockedComments}
+                        setCurrentAnnotation={setCurrentAnnotation}
+                        currentAnnotation={currentAnnotation}
+                        setAnnotations={setComments}
+                        annotations={comments}
+                        setSelectedCommentId={setSelectedCommentId}
+                        selectedCommentId={selectedCommentId}
                       />
                     ) : (
                       <EssayHighlighter
@@ -359,8 +413,9 @@ export const EssayCorrector = ({ readOnly = false }: EssayCorrectorProps) => {
                     </div>
                     <Button
                       onClick={addComment}
-                      disabled={!newComment.trim() || !selectedText || readOnly}
+                      disabled={!newComment.trim() && !selectedText}
                       className="w-full"
+                      loading={isAddingComment}
                     >
                       <Send className="w-4 h-4 mr-2" />
                       {readOnly ? "Modo Visualização" : "Adicionar Comentário"}
@@ -450,6 +505,8 @@ export const EssayCorrector = ({ readOnly = false }: EssayCorrectorProps) => {
                       readOnly={readOnly}
                       comments={comments}
                       setComments={setComments}
+                      setSelectedCommentId={setSelectedCommentId}
+                      selectedCommentId={selectedCommentId}
                     />
                   </CardContent>
                 </Card>
@@ -490,7 +547,12 @@ export const EssayCorrector = ({ readOnly = false }: EssayCorrectorProps) => {
                   <Save className="w-4 h-4 mr-2" />
                   Salvar Rascunho
                 </Button>
-                <Button variant="success" size="sm">
+                <Button
+                  variant="success"
+                  size="sm"
+                  onClick={finisshEssayAnotation}
+                  loading={isUpdatingEssay}
+                >
                   <Download className="w-4 h-4 mr-2" />
                   Finalizar Correção
                 </Button>

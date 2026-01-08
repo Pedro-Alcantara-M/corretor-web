@@ -11,7 +11,9 @@ export const loginUser = async (data: LoginData) => {
   return response.data;
 };
 
-export const logout = async (data: LoginData) => {
-  const response = await api.post("/auth/login", data);
-  return response.data;
+export const logout = async () => {
+  localStorage.removeItem("token");
+  localStorage.removeItem("currentUser");
+  window.location.href = "/sign-in";
+  return;
 };
